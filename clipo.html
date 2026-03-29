@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clipo — Flashcards IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--card:#111118;--card2:#16161f;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);--violet:#7c3aed;--violet-light:#a78bfa;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--texte:#94a3b8;--blanc:#f1f5f9;--gradient:linear-gradient(135deg,#7c3aed,#06b6d4);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--texte);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;padding-bottom:80px;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:.4;}
+.bg-glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,rgba(124,58,237,0.07),transparent 70%);pointer-events:none;z-index:0;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;background:rgba(10,10,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.nav-logo{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.nav-plan{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--violet-light);background:rgba(124,58,237,0.1);padding:5px 12px;border-radius:100px;border:1px solid rgba(124,58,237,0.2);}
+.nav-upgrade{padding:8px 16px;background:var(--gradient);color:white;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity .2s;}
+.nav-upgrade:hover{opacity:.85;}
+
+/* PAGES */
+main{padding-top:72px;position:relative;z-index:1;}
+.page{display:none;padding:24px;}
+.page.active{display:block;}
+
+/* HOME */
+.hero{text-align:center;padding:40px 16px 32px;max-width:640px;margin:0 auto;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:100px;font-size:.72rem;color:var(--violet-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;}
+.hero-dot{width:6px;height:6px;background:var(--violet-light);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+h1{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,5vw,3rem);font-weight:800;color:var(--blanc);line-height:1.05;letter-spacing:-.02em;margin-bottom:16px;}
+.grad{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:.95rem;color:var(--texte);line-height:1.8;margin-bottom:32px;}
+
+/* LIMIT BAR */
+.limit-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.limit-info{flex:1;}
+.limit-title{font-size:.8rem;color:var(--blanc);font-weight:500;margin-bottom:4px;}
+.limit-sub{font-size:.72rem;color:var(--texte);}
+.limit-progress{flex:2;height:5px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;}
+.limit-fill{height:100%;background:var(--gradient);border-radius:100px;transition:width .3s;}
+.upgrade-link{font-size:.75rem;color:var(--violet-light);cursor:pointer;white-space:nowrap;text-decoration:underline;background:none;border:none;}
+
+/* INPUT ZONE */
+.input-zone{background:var(--card);border:1px solid var(--border2);border-radius:20px;overflow:hidden;margin-bottom:16px;}
+.input-tabs{display:flex;border-bottom:1px solid var(--border);}
+.itab{padding:12px 20px;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--texte);cursor:pointer;border:none;background:none;transition:all .2s;border-bottom:2px solid transparent;margin-bottom:-1px;flex:1;}
+.itab.active{color:var(--violet-light);border-bottom-color:var(--violet);}
+.tab-content{display:none;padding:20px;}
+.tab-content.active{display:block;}
+textarea{width:100%;min-height:160px;background:transparent;border:none;color:var(--blanc);font-family:'DM Sans',sans-serif;font-size:.9rem;line-height:1.7;resize:vertical;outline:none;}
+textarea::placeholder{color:rgba(148,163,184,.35);}
+.char-count{font-size:.7rem;color:rgba(148,163,184,.4);text-align:right;margin-top:8px;}
+
+.pdf-drop{border:2px dashed rgba(124,58,237,.25);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s;}
+.pdf-drop:hover,.pdf-drop.dragover{border-color:var(--violet);background:rgba(124,58,237,.05);}
+.pdf-drop-icon{font-size:2.2rem;margin-bottom:10px;display:block;}
+.pdf-drop-text{font-size:.875rem;color:var(--texte);margin-bottom:6px;}
+.pdf-drop-sub{font-size:.72rem;color:rgba(148,163,184,.4);}
+#pdfInput{display:none;}
+.pdf-loaded{display:none;align-items:center;gap:10px;padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;margin-top:12px;}
+.pdf-loaded.show{display:flex;}
+.pdf-loaded-name{font-size:.85rem;color:#6ee7b7;flex:1;}
+.pdf-clear{background:none;border:none;color:rgba(148,163,184,.5);cursor:pointer;font-size:1rem;}
+
+/* OPTIONS */
+.gen-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px;}
+.opt-group label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texte);display:block;margin-bottom:6px;}
+.opt-select{width:100%;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--blanc);font-family:'DM Sans',sans-serif;font-size:.875rem;outline:none;cursor:pointer;}
+
+/* API KEY */
+.api-zone{background:var(--card);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.api-icon{font-size:1.4rem;}
+.api-info{flex:1;}
+.api-title{font-size:.85rem;color:var(--orange);font-weight:500;margin-bottom:4px;}
+.api-input{width:100%;padding:8px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:var(--blanc);font-family:'DM Sans',sans-serif;font-size:.8rem;outline:none;margin-top:6px;}
+.api-input::placeholder{color:rgba(148,163,184,.35);}
+
+/* GEN BTN */
+.gen-btn{width:100%;padding:16px;background:var(--gradient);color:white;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px;}
+.gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 20px 40px rgba(124,58,237,.25);}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;display:none;}
+.gen-btn.loading .spinner{display:block;}
+.gen-btn.loading .btn-text{display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;}
+.stat-num{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--blanc);display:block;}
+.stat-label{font-size:.68rem;color:var(--texte);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;}
+
+/* DECKS */
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.page-title{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--blanc);}
+.decks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+.deck-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+.deck-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gradient);}
+.deck-card:hover{border-color:rgba(124,58,237,.3);transform:translateY(-2px);}
+.deck-emoji{font-size:1.8rem;margin-bottom:10px;display:block;}
+.deck-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--blanc);margin-bottom:6px;}
+.deck-meta{font-size:.75rem;color:var(--texte);display:flex;gap:10px;margin-bottom:12px;}
+.deck-prog-bar{height:3px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;}
+.deck-prog-fill{height:100%;background:var(--gradient);border-radius:100px;}
+.deck-prog-text{font-size:.68rem;color:var(--texte);display:flex;justify-content:space-between;margin-top:4px;}
+.empty-decks{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:3rem;margin-bottom:12px;display:block;opacity:.3;}
+.empty-text{font-size:.95rem;color:var(--texte);margin-bottom:6px;}
+.empty-sub{font-size:.8rem;opacity:.5;}
+
+/* REVIEW */
+.review-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+.back-btn{padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--texte);font-size:.8rem;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.back-btn:hover{color:var(--blanc);}
+.review-progress{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;}
+.review-progress-fill{height:100%;background:var(--gradient);border-radius:100px;transition:width .4s ease;}
+.review-count{font-family:'Syne',sans-serif;font-size:.8rem;color:var(--texte);white-space:nowrap;}
+
+.flashcard-wrap{perspective:1200px;margin:0 auto 20px;max-width:560px;}
+.flashcard{width:100%;min-height:260px;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer;}
+.flashcard.flipped{transform:rotateY(180deg);}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;text-align:center;}
+.card-front{background:var(--card);border:1px solid var(--border2);}
+.card-front::before{content:'';position:absolute;inset:0;border-radius:20px;background:radial-gradient(ellipse at top,rgba(124,58,237,.07),transparent 60%);}
+.card-back{background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(6,182,212,.08));border:1px solid rgba(124,58,237,.2);transform:rotateY(180deg);}
+.card-label{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(148,163,184,.5);margin-bottom:16px;}
+.card-text{font-family:'Syne',sans-serif;font-size:clamp(.95rem,3vw,1.3rem);font-weight:600;color:var(--blanc);line-height:1.4;position:relative;z-index:1;}
+.card-hint{font-size:.72rem;color:rgba(148,163,184,.35);margin-top:16px;}
+
+.flip-hint{text-align:center;font-size:.75rem;color:rgba(148,163,184,.35);margin-bottom:14px;}
+.review-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;max-width:560px;margin:0 auto;}
+.review-btn{padding:14px 10px;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.review-btn span{font-size:1.1rem;}
+.btn-hard{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5;}
+.btn-hard:hover{background:rgba(239,68,68,.2);}
+.btn-ok{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#fcd34d;}
+.btn-ok:hover{background:rgba(245,158,11,.2);}
+.btn-easy{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7;}
+.btn-easy:hover{background:rgba(16,185,129,.2);}
+
+.review-complete{text-align:center;padding:50px 20px;display:none;}
+.review-complete.show{display:block;}
+.complete-emoji{font-size:3.5rem;margin-bottom:16px;display:block;}
+.complete-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--blanc);margin-bottom:10px;}
+.complete-sub{font-size:.9rem;color:var(--texte);margin-bottom:28px;}
+.complete-stats{display:flex;justify-content:center;gap:28px;margin-bottom:28px;}
+.cs{text-align:center;}
+.cs-num{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;display:block;}
+.cs-label{font-size:.68rem;color:var(--texte);text-transform:uppercase;letter-spacing:.08em;}
+
+/* PREMIUM */
+.premium-hero{text-align:center;padding:32px 16px;max-width:560px;margin:0 auto 36px;}
+.premium-title{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--blanc);margin-bottom:12px;}
+.premium-sub{font-size:.9rem;color:var(--texte);line-height:1.8;}
+.plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;margin:0 auto;}
+.plan-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;position:relative;}
+.plan-card.featured{border-color:rgba(124,58,237,.4);background:linear-gradient(135deg,rgba(124,58,237,.07),rgba(6,182,212,.03));}
+.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--gradient);color:white;font-family:'Syne',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 18px;border-radius:100px;white-space:nowrap;}
+.plan-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--blanc);margin-bottom:6px;}
+.plan-price{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blanc);margin:14px 0 3px;}
+.plan-price span{font-size:.9rem;font-weight:400;color:var(--texte);}
+.plan-period{font-size:.75rem;color:var(--texte);margin-bottom:20px;}
+.plan-features{list-style:none;margin-bottom:24px;}
+.plan-features li{font-size:.82rem;color:var(--texte);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.plan-features li::before{content:'✓';color:var(--green);font-size:.75rem;flex-shrink:0;}
+.plan-btn{width:100%;padding:13px;background:var(--gradient);color:white;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all .3s;}
+.plan-btn.outline{background:transparent;border:1px solid var(--border2);color:var(--texte);}
+.plan-btn:hover{opacity:.85;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100;}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;cursor:pointer;border:none;background:none;transition:all .2s;}
+.bnav-icon{font-size:1.2rem;}
+.bnav-label{font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;color:var(--texte);transition:color .2s;}
+.bnav-item.active .bnav-label,.bnav-item.active .bnav-icon{color:var(--violet-light);}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:12px 20px;font-size:.85rem;color:var(--blanc);z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* RESPONSIVE */
+@media(max-width:500px){.plans-grid{grid-template-columns:1fr;}.gen-options{grid-template-columns:1fr;}.complete-stats{gap:16px;}}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Clipo</div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="nav-plan" id="navPlan">Gratuit</div>
+    <button class="nav-upgrade" onclick="showPage('premium')">✨ Premium</button>
+  </div>
+</nav>
+
+<main>
+  <!-- ===== PAGE HOME ===== -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-badge"><div class="hero-dot"></div>IA Gemini intégrée</div>
+      <h1>Apprends <span class="grad">2x plus vite</span> avec l'IA</h1>
+      <p class="hero-sub">Colle ton cours ou uploade un PDF — Clipo génère tes flashcards en quelques secondes.</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <span class="stat-num" id="statTotal">0</span>
+        <div class="stat-label">Flashcards</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statDecks">0</span>
+        <div class="stat-label">Decks</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statStreak">0🔥</span>
+        <div class="stat-label">Jours</div>
+      </div>
+    </div>
+
+    <!-- LIMIT BAR -->
+    <div class="limit-bar">
+      <div class="limit-info">
+        <div class="limit-title">Générations aujourd'hui : <span id="limitCount">0</span>/5</div>
+        <div class="limit-sub">Plan gratuit — 5 générations/jour</div>
+      </div>
+      <div class="limit-progress"><div class="limit-fill" id="limitFill" style="width:0%"></div></div>
+      <button class="upgrade-link" onclick="showPage('premium')">Upgrade</button>
+    </div>
+
+    <!-- API KEY -->
+    <div class="api-zone">
+      <div class="api-icon">🔑</div>
+      <div class="api-info">
+        <div class="api-title">Clé API Gemini requise</div>
+        <input class="api-input" type="password" id="apiKey" placeholder="Colle ta clé API Gemini ici (AIza...)" />
+      </div>
+      <button onclick="saveApiKey()" style="padding:8px 14px;background:var(--gradient);color:white;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Syne',sans-serif;">Sauver</button>
+    </div>
+
+    <!-- INPUT ZONE -->
+    <div class="input-zone">
+      <div class="input-tabs">
+        <button class="itab active" onclick="switchTab('text',this)">📝 Texte</button>
+        <button class="itab" onclick="switchTab('pdf',this)">📄 PDF</button>
+      </div>
+      <div class="tab-content active" id="tab-text">
+        <textarea id="inputText" placeholder="Colle ton cours, tes notes, un article... L'IA s'occupe du reste ✨" oninput="updateCharCount()"></textarea>
+        <div class="char-count"><span id="charCount">0</span> caractères</div>
+      </div>
+      <div class="tab-content" id="tab-pdf">
+        <div class="pdf-drop" id="pdfDrop" onclick="document.getElementById('pdfInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="this.classList.remove('dragover')">
+          <span class="pdf-drop-icon">📄</span>
+          <div class="pdf-drop-text">Clique ou glisse ton PDF ici</div>
+          <div class="pdf-drop-sub">Fichiers PDF uniquement • Max 10 Mo</div>
+        </div>
+        <input type="file" id="pdfInput" accept=".pdf" onchange="handlePdfSelect(event)">
+        <div class="pdf-loaded" id="pdfLoaded">
+          <span>📄</span>
+          <div class="pdf-loaded-name" id="pdfName">—</div>
+          <button class="pdf-clear" onclick="clearPdf()">✕</button>
+        </div>
+      </div>
+      <div class="gen-options">
+        <div class="opt-group">
+          <label>Nombre de flashcards</label>
+          <select class="opt-select" id="cardCount">
+            <option value="5">5 flashcards</option>
+            <option value="10" selected>10 flashcards</option>
+            <option value="15">15 flashcards</option>
+            <option value="20">20 flashcards</option>
+          </select>
+        </div>
+        <div class="opt-group">
+          <label>Difficulté</label>
+          <select class="opt-select" id="difficulty">
+            <option value="simple">Simple</option>
+            <option value="moyen" selected>Moyen</option>
+            <option value="avancé">Avancé</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn" onclick="generateFlashcards()">
+      <div class="spinner" id="spinner"></div>
+      <span class="btn-text">✨ Générer mes flashcards</span>
+    </button>
+  </div>
+
+  <!-- ===== PAGE DECKS ===== -->
+  <div class="page" id="page-decks">
+    <div class="page-header">
+      <div class="page-title">Mes Decks</div>
+      <button onclick="showPage('home')" style="padding:8px 14px;background:var(--gradient);color:white;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;">+ Nouveau</button>
+    </div>
+    <div id="decksContainer"></div>
+  </div>
+
+  <!-- ===== PAGE REVIEW ===== -->
+  <div class="page" id="page-review">
+    <div class="review-header">
+      <button class="back-btn" onclick="showPage('decks')">← Retour</button>
+      <div class="review-progress"><div class="review-progress-fill" id="reviewProgressFill"></div></div>
+      <div class="review-count" id="reviewCount">0/0</div>
+    </div>
+
+    <div id="reviewMain">
+      <div class="flip-hint">👆 Clique sur la carte pour voir la réponse</div>
+      <div class="flashcard-wrap">
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <div class="card-face card-front">
+            <div class="card-label">Question</div>
+            <div class="card-text" id="cardQuestion">—</div>
+            <div class="card-hint">Clique pour révéler la réponse</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="card-label">Réponse</div>
+            <div class="card-text" id="cardAnswer">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-actions">
+        <button class="review-btn btn-hard" onclick="rateCard('hard')"><span>😓</span>Difficile</button>
+        <button class="review-btn btn-ok" onclick="rateCard('ok')"><span>🤔</span>Moyen</button>
+        <button class="review-btn btn-easy" onclick="rateCard('easy')"><span>😊</span>Facile</button>
+      </div>
+    </div>
+
+    <div class="review-complete" id="reviewComplete">
+      <span class="complete-emoji">🎉</span>
+      <div class="complete-title">Session terminée !</div>
+      <p class="complete-sub">Excellent travail. Continue comme ça !</p>
+      <div class="complete-stats">
+        <div class="cs"><span class="cs-num" id="csEasy" style="color:#6ee7b7">0</span><div class="cs-label">Facile</div></div>
+        <div class="cs"><span class="cs-num" id="csOk" style="color:#fcd34d">0</span><div class="cs-label">Moyen</div></div>
+        <div class="cs"><span class="cs-num" id="csHard" style="color:#fca5a5">0</span><div class="cs-label">Difficile</div></div>
+      </div>
+      <button onclick="showPage('decks')" style="padding:14px 32px;background:var(--gradient);color:white;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;margin-right:10px;">Mes decks</button>
+      <button onclick="restartReview()" style="padding:14px 32px;background:var(--card);border:1px solid var(--border2);color:var(--texte);border-radius:12px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;">Recommencer</button>
+    </div>
+  </div>
+
+  <!-- ===== PAGE PREMIUM ===== -->
+  <div class="page" id="page-premium">
+    <div class="premium-hero">
+      <div style="font-size:2.5rem;margin-bottom:16px;">✨</div>
+      <div class="premium-title">Passe à <span class="grad">Clipo Premium</span></div>
+      <p class="premium-sub">Génère autant de flashcards que tu veux, uploade des PDFs illimités et suis tes progrès en détail.</p>
+    </div>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Gratuit</div>
+        <div class="plan-price">0€<span>/mois</span></div>
+        <div class="plan-period">Pour découvrir Clipo</div>
+        <ul class="plan-features">
+          <li>5 générations par jour</li>
+          <li>Texte uniquement</li>
+          <li>Jusqu'à 10 flashcards/génération</li>
+          <li>Decks illimités</li>
+        </ul>
+        <button class="plan-btn outline" disabled>Plan actuel</button>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge">⚡ Le plus populaire</div>
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">4,99€<span>/mois</span></div>
+        <div class="plan-period">Résiliable à tout moment</div>
+        <ul class="plan-features">
+          <li>Générations illimitées</li>
+          <li>PDF + Texte</li>
+          <li>Jusqu'à 50 flashcards/génération</li>
+          <li>Statistiques avancées</li>
+          <li>Révision espacée intelligente</li>
+          <li>Export PDF de tes decks</li>
+        </ul>
+        <button class="plan-btn" onclick="handleUpgrade()">Commencer — 4,99€/mois</button>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:24px;font-size:.75rem;color:rgba(148,163,184,.4);">Paiement sécurisé via Stripe · Annulation en 1 clic</p>
+  </div>
+</main>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bnav-item active" onclick="showPage('home')" id="bnav-home">
+    <div class="bnav-icon">✨</div>
+    <div class="bnav-label">Générer</div>
+  </button>
+  <button class="bnav-item" onclick="showPage('decks')" id="bnav-decks">
+    <div class="bnav-icon">📚</div>
+    <div class="bnav-label">Mes decks</div>
+  </button>
+  <button class="bnav-item" onclick="showPage('premium')" id="bnav-premium">
+    <div class="bnav-icon">⚡</div>
+    <div class="bnav-label">Premium</div>
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let state = {
+  decks: JSON.parse(localStorage.getItem('clipo_decks') || '[]'),
+  apiKey: localStorage.getItem('clipo_apikey') || '',
+  isPremium: false,
+  dailyCount: parseInt(localStorage.getItem('clipo_daily_' + new Date().toDateString()) || '0'),
+  currentDeck: null,
+  currentCardIndex: 0,
+  isFlipped: false,
+  ratings: { easy: 0, ok: 0, hard: 0 },
+  pdfText: '',
+  currentTab: 'text'
+};
+
+const DAILY_LIMIT = 5;
+const EMOJIS = ['📚','🧠','🔬','💡','🎯','🌍','🏛️','🔭','⚗️','🎨','💻','📐'];
+
+// ===== INIT =====
+function init() {
+  if (state.apiKey) document.getElementById('apiKey').value = '••••••••••••••••';
+  updateStats();
+  updateLimitBar();
+  renderDecks();
+}
+
+// ===== NAVIGATION =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const bnav = document.getElementById('bnav-' + name);
+  if (bnav) bnav.classList.add('active');
+  if (name === 'decks') renderDecks();
+}
+
+// ===== TABS =====
+function switchTab(tab, el) {
+  state.currentTab = tab;
+  document.querySelectorAll('.itab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ===== API KEY =====
+function saveApiKey() {
+  const val = document.getElementById('apiKey').value.trim();
+  if (!val || val.includes('•')) { showToast('⚠️ Entre ta vraie clé API'); return; }
+  state.apiKey = val;
+  localStorage.setItem('clipo_apikey', val);
+  document.getElementById('apiKey').value = '••••••••••••••••';
+  showToast('✅ Clé API sauvegardée !');
+}
+
+// ===== CHAR COUNT =====
+function updateCharCount() {
+  const len = document.getElementById('inputText').value.length;
+  document.getElementById('charCount').textContent = len.toLocaleString();
+}
+
+// ===== PDF =====
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('pdfDrop').classList.add('dragover');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('pdfDrop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') processPdf(file);
+  else showToast('⚠️ Fichier PDF uniquement');
+}
+function handlePdfSelect(e) {
+  const file = e.target.files[0];
+  if (file) processPdf(file);
+}
+async function processPdf(file) {
+  showToast('⏳ Lecture du PDF...');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    state.pdfText = text.trim();
+    document.getElementById('pdfName').textContent = file.name + ` (${pdf.numPages} pages)`;
+    document.getElementById('pdfLoaded').classList.add('show');
+    showToast('✅ PDF chargé — ' + pdf.numPages + ' pages');
+  } catch(e) {
+    showToast('❌ Erreur lecture PDF');
+  }
+}
+function clearPdf() {
+  state.pdfText = '';
+  document.getElementById('pdfLoaded').classList.remove('show');
+  document.getElementById('pdfInput').value = '';
+}
+
+// ===== GENERATE =====
+async function generateFlashcards() {
+  if (!state.apiKey) { showToast('⚠️ Entre ta clé API Gemini d\'abord'); return; }
+  if (state.dailyCount >= DAILY_LIMIT && !state.isPremium) {
+    showToast('🔒 Limite atteinte — Passe à Premium !');
+    showPage('premium');
+    return;
+  }
+  const text = state.currentTab === 'text'
+    ? document.getElementById('inputText').value.trim()
+    : state.pdfText;
+  if (!text || text.length < 50) { showToast('⚠️ Contenu trop court (min 50 caractères)'); return; }
+
+  const count = document.getElementById('cardCount').value;
+  const difficulty = document.getElementById('difficulty').value;
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  const prompt = `Tu es un expert en pédagogie. À partir du texte suivant, génère exactement ${count} flashcards en français de niveau "${difficulty}".
+
+RÈGLES IMPORTANTES :
+- Questions claires et précises
+- Réponses concises (1-3 phrases max)
+- Varie les types de questions (définition, application, comparaison...)
+- Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans explication
+
+FORMAT JSON EXACT :
+{"flashcards":[{"question":"...","answer":"..."},{"question":"...","answer":"..."}]}
+
+TEXTE SOURCE :
+${text.substring(0, 8000)}`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${state.apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Erreur API');
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    const cards = parsed.flashcards;
+    if (!cards || cards.length === 0) throw new Error('Aucune flashcard générée');
+
+    // Créer le deck
+    const deck = {
+      id: Date.now(),
+      name: 'Deck ' + (state.decks.length + 1),
+      emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+      cards: cards.map(c => ({ ...c, rating: null })),
+      createdAt: new Date().toISOString(),
+      mastered: 0
+    };
+    state.decks.unshift(deck);
+    localStorage.setItem('clipo_decks', JSON.stringify(state.decks));
+
+    // Update count
+    state.dailyCount++;
+    localStorage.setItem('clipo_daily_' + new Date().toDateString(), state.dailyCount);
+    updateLimitBar();
+    updateStats();
+
+    showToast(`🎉 ${cards.length} flashcards générées !`);
+    setTimeout(() => { startReview(deck); }, 800);
+
+  } catch(e) {
+    showToast('❌ ' + (e.message || 'Erreur de génération'));
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+// ===== DECKS =====
+function renderDecks() {
+  const container = document.getElementById('decksContainer');
+  if (state.decks.length === 0) {
+    container.innerHTML = `<div class="empty-decks"><span class="empty-icon">📚</span><div class="empty-text">Aucun deck pour l'instant</div><div class="empty-sub">Génère tes premières flashcards !</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="decks-grid">${state.decks.map(deck => {
+    const mastered = deck.cards.filter(c => c.rating === 'easy').length;
+    const pct = Math.round((mastered / deck.cards.length) * 100);
+    return `<div class="deck-card" onclick="startReview(${JSON.stringify(deck).replace(/"/g, '&quot;')})">
+      <span class="deck-emoji">${deck.emoji}</span>
+      <div class="deck-name">${deck.name}</div>
+      <div class="deck-meta"><span>${deck.cards.length} cartes</span><span>${pct}% maîtrisé</span></div>
+      <div class="deck-prog-bar"><div class="deck-prog-fill" style="width:${pct}%"></div></div>
+      <div class="deck-prog-text"><span>${mastered} maîtrisées</span><span>${deck.cards.length - mastered} restantes</span></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ===== REVIEW =====
+function startReview(deck) {
+  state.currentDeck = typeof deck === 'string' ? JSON.parse(deck) : deck;
+  state.currentCardIndex = 0;
+  state.isFlipped = false;
+  state.ratings = { easy: 0, ok: 0, hard: 0 };
+  document.getElementById('reviewComplete').classList.remove('show');
+  document.getElementById('reviewMain').style.display = 'block';
+  showPage('review');
+  showCard();
+}
+
+function showCard() {
+  const deck = state.currentDeck;
+  const card = deck.cards[state.currentCardIndex];
+  const total = deck.cards.length;
+  const current = state.currentCardIndex + 1;
+
+  document.getElementById('cardQuestion').textContent = card.question;
+  document.getElementById('cardAnswer').textContent = card.answer;
+  document.getElementById('reviewCount').textContent = current + '/' + total;
+  document.getElementById('reviewProgressFill').style.width = ((current - 1) / total * 100) + '%';
+
+  // Reset flip
+  state.isFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+}
+
+function flipCard() {
+  state.isFlipped = !state.isFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', state.isFlipped);
+}
+
+function rateCard(rating) {
+  if (!state.isFlipped) { showToast('👆 Retourne la carte d\'abord !'); return; }
+  state.ratings[rating]++;
+  const deck = state.currentDeck;
+  deck.cards[state.currentCardIndex].rating = rating;
+
+  // Update in storage
+  const idx = state.decks.findIndex(d => d.id === deck.id);
+  if (idx !== -1) {
+    state.decks[idx].cards[state.currentCardIndex].rating = rating;
+    state.decks[idx].mastered = state.decks[idx].cards.filter(c => c.rating === 'easy').length;
+    localStorage.setItem('clipo_decks', JSON.stringify(state.decks));
+  }
+
+  state.currentCardIndex++;
+  if (state.currentCardIndex >= deck.cards.length) {
+    showComplete();
+  } else {
+    showCard();
+  }
+}
+
+function showComplete() {
+  document.getElementById('reviewMain').style.display = 'none';
+  document.getElementById('reviewComplete').classList.add('show');
+  document.getElementById('csEasy').textContent = state.ratings.easy;
+  document.getElementById('csOk').textContent = state.ratings.ok;
+  document.getElementById('csHard').textContent = state.ratings.hard;
+  document.getElementById('reviewProgressFill').style.width = '100%';
+  updateStats();
+}
+
+function restartReview() {
+  startReview(state.currentDeck);
+}
+
+// ===== STATS =====
+function updateStats() {
+  const total = state.decks.reduce((sum, d) => sum + d.cards.length, 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDecks').textContent = state.decks.length;
+}
+
+function updateLimitBar() {
+  const pct = (state.dailyCount / DAILY_LIMIT) * 100;
+  document.getElementById('limitCount').textContent = state.dailyCount;
+  document.getElementById('limitFill').style.width = Math.min(pct, 100) + '%';
+}
+
+// ===== PREMIUM =====
+function handleUpgrade() {
+  showToast('🔗 Redirection vers Stripe...');
+  // TODO: Remplace par ton vrai lien Stripe
+  // window.open('https://buy.stripe.com/TON_LIEN', '_blank');
+  setTimeout(() => showToast('💳 Stripe pas encore configuré — mode test'), 1500);
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== PDF.JS =====
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+init();
+</script>
+</body>
+</html>
